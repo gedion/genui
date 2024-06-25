@@ -1,24 +1,14 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { ReactNode, useEffect, useRef, useState } from 'react';
 
 import { useUIState, useActions } from 'ai/rsc';
-import { UserMessage } from '@/components/llm-stocks/message';
 
 import { type AI } from './action';
 import { ChatScrollAnchor } from '@/lib/hooks/chat-scroll-anchor';
-import { FooterText } from '@/components/footer';
 import Textarea from 'react-textarea-autosize';
 import { useEnterSubmit } from '@/lib/hooks/use-enter-submit';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
-import { IconArrowElbow, IconPlus } from '@/components/ui/icons';
-import { Button } from '@/components/ui/button';
 import { ChatList } from '@/components/chat-list';
-import { EmptyScreen } from '@/components/empty-screen';
 
 // Force the page to be dynamic and allow streaming responses up to 30 seconds
 export const dynamic = 'force-dynamic';
@@ -26,7 +16,7 @@ export const maxDuration = 30;
 
 export default function Page() {
   const [messages, setMessages] = useUIState<typeof AI>();
-  const { submitUserMessage } = useActions<typeof AI>();
+  //  const { submitUserMessage } = useActions<typeof AI>();
   const [inputValue, setInputValue] = useState('');
   const { formRef, onKeyDown } = useEnterSubmit();
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -58,30 +48,8 @@ export default function Page() {
   return (
     <div>
       <div className="pb-[200px] pt-4 md:pt-10">
-        {messages.length ? (
-          <>
-            <ChatList messages={messages} />
-          </>
-        ) : (
-          <EmptyScreen
-            submitMessage={async message => {
-              // Add user message UI
-              setMessages(currentMessages => [
-                ...currentMessages,
-                {
-                  id: Date.now(),
-                  display: <UserMessage>{message}</UserMessage>,
-                },
-              ]);
-
-              // Submit and get response message
-              const responseMessage = await submitUserMessage(message);
-              setMessages(currentMessages => [
-                ...currentMessages,
-                responseMessage,
-              ]);
-            }}
-          />
+        {messages && (
+          <ChatList messages={messages} />
         )}
         <ChatScrollAnchor trackVisibility={true} />
       </div>
@@ -107,16 +75,15 @@ export default function Page() {
                   ...currentMessages,
                   {
                     id: Date.now(),
-                    display: <UserMessage>{value}</UserMessage>,
+                    display: value //'' //<UserMessage>{value}</UserMessage>,
                   },
                 ]);
 
                 try {
                   // Submit and get response message
-                  const responseMessage = await submitUserMessage(value);
+                  const responseMessage = () => ([
+                  ])//await submitUserMessage(value);
                   setMessages(currentMessages => [
-                    ...currentMessages,
-                    responseMessage,
                   ]);
                 } catch (error) {
                   // You may want to show a toast or trigger an error state.
@@ -125,23 +92,6 @@ export default function Page() {
               }}
             >
               <div className="relative flex flex-col w-full px-8 overflow-hidden max-h-60 grow bg-background sm:rounded-md sm:border sm:px-12">
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      className="absolute left-0 w-8 h-8 p-0 rounded-full top-4 bg-background sm:left-4"
-                      onClick={e => {
-                        e.preventDefault();
-                        window.location.reload();
-                      }}
-                    >
-                      <IconPlus />
-                      <span className="sr-only">New Chat</span>
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>New Chat</TooltipContent>
-                </Tooltip>
                 <Textarea
                   ref={inputRef}
                   tabIndex={0}
@@ -158,23 +108,9 @@ export default function Page() {
                   onChange={e => setInputValue(e.target.value)}
                 />
                 <div className="absolute right-0 top-4 sm:right-4">
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        type="submit"
-                        size="icon"
-                        disabled={inputValue === ''}
-                      >
-                        <IconArrowElbow />
-                        <span className="sr-only">Send message</span>
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>Send message</TooltipContent>
-                  </Tooltip>
                 </div>
               </div>
             </form>
-            <FooterText className="hidden sm:block" />
           </div>
         </div>
       </div>
