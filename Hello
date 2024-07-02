@@ -1,0 +1,23 @@
+import React, { useState, useEffect } from 'react';
+
+export function PlantCell() {
+  const [size, setSize] = useState(1); // Initial size of the cell
+  const [age, setAge] = useState(0); // Initial age of the cell
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setSize(prevSize => prevSize + 1); // Simulate growth by increasing size
+      setAge(prevAge => prevAge + 1); // Simulate aging by increasing age
+    }, 1000); // Update every second
+
+    return () => clearInterval(interval); // Cleanup interval on component unmount
+  }, []);
+
+  return (
+    <div style={{ backgroundColor: '#333', color: '#fff', padding: '20px', borderRadius: '10px' }}>
+      <h1>Plant Cell Simulation</h1>
+      <p>Age: {age} seconds</p>
+      <p>Size: {size} units</p>
+    </div>
+  );
+}
