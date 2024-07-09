@@ -1,143 +1,54 @@
-'use client';
-
-import { ReactNode, useEffect, useRef, useState } from 'react';
+'use client'
+import { useUIState } from 'ai/rsc';
 import { AI } from './action';
-import { useActions, useUIState } from 'ai/rsc';
+import componentsMapping from './componentsMapping';
+import { mapPosition } from './componentPositionMapping';
 
 import { ChatScrollAnchor } from '@/lib/hooks/chat-scroll-anchor';
-import Textarea from 'react-textarea-autosize';
-import { useEnterSubmit } from '@/lib/hooks/use-enter-submit';
-import { ChatList } from '@/components/chat-list';
-import Hello from '@/components/dynamic/Hello'
+import ContextMenu from '@/components/ui/contextMenu';
+
 // Force the page to be dynamic and allow streaming responses up to 30 seconds
 export const dynamic = 'force-dynamic';
 export const maxDuration = 30;
+const getGridPositionFromCoordinates = (x, y) => {
+  const columns = 12; // 12-column grid
+  const columnWidth = window.innerWidth / columns;
+  const rowHeight = 50; // Arbitrary row height
 
-/*
-export default function Page() {
-  const [messages, setMessages] = useUIState<typeof AI>();
-  //  const { submitUserMessage } = useActions<typeof AI>();
-  const [inputValue, setInputValue] = useState('');
-  const { formRef, onKeyDown } = useEnterSubmit();
-  const inputRef = useRef<HTMLTextAreaElement>(null);
+  const columnStart = Math.min(Math.floor(x / columnWidth) + 1, columns);
+  const columnSpan = 2; // Allow each component to span across 2 columns
+  const columnEnd = Math.min(columnStart + columnSpan - 1, columns);
 
-  const { submitUserMessage } = useActions();
+  const maxHeight = Math.floor(window.innerHeight / rowHeight);
+  const row = Math.min(Math.floor(y / rowHeight) + 1, maxHeight);
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setInputValue('');
-    setMessages(messages => [
-      ...messages,
-      <div>{inputValue}</div>,
-    ]);
-    const message = await submitUserMessage(inputValue);
-    setMessages(messages => [...messages, message]);
-  };
-  return (
-    <div>
-      <div>
-        {messages.map((message, i) => (
-          <div key={i}>{message}</div>
-        ))}
-      </div>
-      <div>
-        <form onSubmit={handleSubmit}>
-          <input
-            type="text"
-            value={inputValue}
-            onChange={e => setInputValue(e.target.value)}
-          />
-          <button>Send Message</button>
-        </form>
-      </div>
-    </div>
-  );
-}
+  return { gridColumnStart: columnStart, gridColumnEnd: columnEnd, gridRowStart: row };
+};
 
-*/
 
 export default function Page() {
-  const [messages, setMessages] = useUIState<typeof AI>();
-  //  const { submitUserMessage } = useActions<typeof AI>();
-  const [inputValue, setInputValue] = useState('');
-  const { formRef, onKeyDown } = useEnterSubmit();
-  const inputRef = useRef<HTMLTextAreaElement>(null);
-
-  const { submitUserMessage } = useActions();
-
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setInputValue('');
-    setMessages(messages => [
-      ...messages,
-      <div>{inputValue}</div>,
-    ]);
-    const message = await submitUserMessage(inputValue);
-    setMessages(messages => [...messages, message]);
-  };
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === '/') {
-        if (
-          e.target &&
-          ['INPUT', 'TEXTAREA'].includes((e.target as any).nodeName)
-        ) {
-          return;
-        }
-        e.preventDefault();
-        e.stopPropagation();
-        if (inputRef?.current) {
-          inputRef.current.focus();
-        }
-      }
-    };
-
-    document.addEventListener('keydown', handleKeyDown);
-
-    return () => {
-      document.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [inputRef]);
-
+  const [components, setComponents] = useUIState<typeof AI>();
+  const keys = Object.keys(componentsMapping)
+  console.log('components', keys)
   return (
     <div>
-      <div className="pb-[200px] pt-4 md:pt-10">
-        {messages && (
-          <ChatList messages={messages} />
-        )}
-        <ChatScrollAnchor trackVisibility={true} />
-      </div>
-      <Hello />
-      <div className="fixed inset-x-0 bottom-0 w-full bg-gradient-to-b from-muted/30 from-0% to-muted/30 to-50% duration-300 ease-in-out animate-in dark:from-background/10 dark:from-10% dark:to-background/80 peer-[[data-state=open]]:group-[]:lg:pl-[250px] peer-[[data-state=open]]:group-[]:xl:pl-[300px]">
-        <div className="mx-auto sm:max-w-2xl sm:px-4">
-          <div className="px-4 py-2 space-y-4 border-t shadow-lg bg-background sm:rounded-t-xl sm:border md:py-4">
-            <form
-              ref={formRef}
-              onSubmit={handleSubmit}
-            >
-              <div className="relative flex flex-col w-full px-8 overflow-hidden max-h-60 grow bg-background sm:rounded-md sm:border sm:px-12">
-                <Textarea
-                  ref={inputRef}
-                  tabIndex={0}
-                  onKeyDown={onKeyDown}
-                  placeholder="Send a message."
-                  className="min-h-[60px] w-full resize-none bg-transparent px-4 py-[1.3rem] focus-within:outline-none sm:text-sm"
-                  autoFocus
-                  spellCheck={false}
-                  autoComplete="off"
-                  autoCorrect="off"
-                  name="message"
-                  rows={1}
-                  value={inputValue}
-                  onChange={e => setInputValue(e.target.value)}
-                />
-                <div className="absolute right-0 top-4 sm:right-4">
-                </div>
+      <ContextMenu message={components} setMessages={setComponents}>
+        <div className="grid grid-cols-12 gap-2">
+          {keys.map((key, index) => {
+            const DynamicComponent = componentsMapping[key];
+            if (!DynamicComponent) return null; // handle missing compoknent
+            const { x, y } = mapPosition[key] ?? { x: 0, y: 0 }
+            const { gridColumnStart, gridRowStart } = getGridPositionFromCoordinates(x, y);
+
+            return (
+              <div key={index} style={{ gridColumnStart, gridRowStart }}>
+                <DynamicComponent key={index} />
               </div>
-            </form>
-          </div>
+            )
+          })}
+          <ChatScrollAnchor trackVisibility={true} />
         </div>
-      </div>
+      </ContextMenu>
     </div>
   );
 }

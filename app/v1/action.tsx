@@ -1,126 +1,70 @@
-import 'server-only'
-
-import React, { useEffect } from 'react'
+import 'server-only';
+import React from 'react';
 import { createAI, streamUI } from 'ai/rsc';
 import { openai } from '@ai-sdk/openai';
 import { z } from 'zod';
-import dynamic from 'next/dynamic'
-import { Flights } from '@/components/flights'
-import ReactHtmlParser from 'react-html-parser';
-import * as Babel from '@babel/standalone';
-import fs from 'fs'
-import path from 'path'
-//import { writeDyanmicComponent } from '@/lib/utils/writeDynamicComponent'
-//import path from 'path'
+import fs from 'fs/promises';
+import path from 'path';
 
-export async function getServerSideProps() {
-  //const fs = require("node:fs/promises");
-  return {
-    props: {
-      fs: '',
-    },
-  };
-}
-
-// Helper function to create a React component from a string
-const createComponentFromString = (componentString) => {
-  const transpiledCode = Babel.transform(componentString, { presets: ['react'] }).code;
-  return new Function('React', `return ${transpiledCode}`)(React);
-};
-
-
-// Client-side dynamic import for the component wrapper
-const DynamicComponent = (props) => {
-  const { componentString } = props;
-  const TranspiledComponent = createComponentFromString(componentString);
-
-  // Use dynamic import to defer the rendering until the component is available
-  const DynamicWrapper = dynamic(
-    () => Promise.resolve(() => <TranspiledComponent />),
-    { ssr: false, loading: () => <p>Loading...</p> }
-  );
-
-  return <DynamicWrapper />;
-};
-
-const jsxString = `
-  <div>
-    <h1>Hello World</h1>
-    <p>This is a paragraph.</p>
-  </div>
-`;
-
-// Helper function to inject CSS into the document head
-const injectCSS = (css) => {
-  const style = document.createElement('style');
-  style.type = 'text/css';
-  style.appendChild(document.createTextNode(css));
-  document.head.appendChild(style);
-};
-
-const searchFlights = async (
-  source: string,
-  destination: string,
-  date: string,
-) => {
-  return [
-    {
-      id: '1',
-      flightNumber: 'AA123',
-    },
-    {
-      id: '2',
-      flightNumber: 'AA456',
-    },
-  ];
-};
-
-const lookupFlight = async (flightNumber: string) => {
-  return {
-    flightNumber: flightNumber,
-    departureTime: '10:00 AM',
-    arrivalTime: '12:00 PM',
-  };
-};
-
-export async function submitUserMessage(input: string) {
+export async function submitUserMessage(input: string, position: { x: number, y: number }) {
   'use server';
   const ui = await streamUI({
-    model: openai('gpt-4o'),
-    system: 'You are a plant cell biologist and software engineer. You will be attempting to simulate the life span of a cell using React components. Use dark mode',
+    model: openai('gpt-4o', {
+      temperature: 1,
+    }),
+    system: `
+      You are the best UX designer and web developer, tasked with generating amazing UI components. 
+      Your goal is to create visually stunning, user-friendly, and responsive React components. 
+      Use concise, clear, and well-structured code, ensuring every component follows best practices and 
+      leverages inline Tailwind CSS for styling. 
+      Do not assume the existence of external modules or custom CSS files. 
+      Your output should be a default exported React component, 
+      starting with the Next.js declarative "use client" syntax. 
+    `,
     prompt: input,
     text: async ({ content }) => <div>{content}</div>,
     tools: {
       display: {
-        description: 'When asked about plant biology, generate the most pleasant react components to display the concept. all components should begin with the nextjs declarative use client with the correct syntax. do not import custom css files or assume modules exists. use inline tailwind css when you want to make it pretty. The exported component should be default',
+        description: 'The React component that will be rendered with Next.js dynamic import',
         parameters: z.object({
-          display: z.string().describe('The beautiful react component you generated'),
+          display: z.string().describe('The beautiful React component you generated'),
+          componentName: z.string().describe('The name of the component you generated'),
         }),
-        generate: async function* ({ display }) {
-          yield `Looking up details for...`;
-          console.log('display ', display);
-          /*
-          // Ensure the generated JSX string is valid and can be transpiled
-          const transpiledCode = Babel.transform(display, { presets: ['react'] }).code;
-          const GeneratedComponent = new Function('React', `return ${transpiledCode}`)(React);
-
-          const jsxHello = ReactHtmlParser(jsxString);
-          const jsxDisplay = <GeneratedComponent />;
-
-          console.log('jsxDisplay ', jsxDisplay);
-*/
-
+        generate: async function* ({ display, componentName }) {
+          yield `Looking up details for ${componentName}...`;
           const componentDirectory = path.join(process.cwd(), 'components/dynamic');
-          const componentPath = path.join(componentDirectory, 'Hello.tsx');
-          console.log('componentPath ', componentPath)
-          fs.writeFileSync(componentPath, display)
-          const DHello = dynamic(() => import('@/components/dynamic/Hello'), {
-            loading: () => <p>Loading...</p>,
-          })
+          const componentPath = path.join(componentDirectory, `${componentName}.tsx`);
+
+          const componentContent = `
+${display}
+export const position = ${JSON.stringify(position)};
+          `;
+
+          await fs.mkdir(componentDirectory, { recursive: true });
+          await fs.writeFile(componentPath, componentContent);
+
+          // Update the components mapping file
+          const mappingFilePath = path.join(process.cwd(), 'app/v1/componentsMapping.ts');
+          const mappingContent = await fs.readFile(mappingFilePath, 'utf-8');
+          const updatedMappingContent = mappingContent.replace(
+            '};',
+            `  "${componentName}": dynamic(() => import("@/components/dynamic/${componentName}")),\n};`
+          );
+          await fs.writeFile(mappingFilePath, updatedMappingContent);
+
+          const positionMappingFilePath = path.join(process.cwd(), 'app/v1/componentPositionMapping.ts');
+          const positionMappingContent = await fs.readFile(positionMappingFilePath, 'utf-8');
+          const updatedPositionMappingContent = positionMappingContent.replace(
+            '};',
+            `  "${componentName}": ${JSON.stringify(position)},\n};`
+          );
+          await fs.writeFile(positionMappingFilePath, updatedPositionMappingContent);
 
           return (
             <div>
-              <DHello />
+              <div className="absolute" style={{ top: position?.y ?? 0, left: position?.x ?? 0 }}>
+                Loading...
+              </div>
             </div>
           );
         },

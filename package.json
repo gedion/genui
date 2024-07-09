@@ -4,7 +4,7 @@
   "version": "0.0.0",
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "debug": "NODE_OPTIONS='--inspect-brk' node_modules/.bin/next dev",
     "start": "next start",
     "lint": "next lint",
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx}\"",
@@ -13,6 +13,8 @@
   "dependencies": {
     "@ai-sdk/openai": "latest",
     "@babel/standalone": "^7.24.7",
+    "@radix-ui/colors": "^3.0.0",
+    "@radix-ui/react-context-menu": "^2.2.1",
     "@radix-ui/react-icons": "^1.3.0",
     "@radix-ui/react-label": "^2.0.2",
     "@radix-ui/react-separator": "^1.0.3",
