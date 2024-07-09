@@ -57,14 +57,17 @@
     @apply bg-background text-foreground;
   }
 }
-.grid {
-  display: grid;
-  grid-template-columns: repeat(12, 1fr); /* 12-column grid */
-  gap: 1rem; /* Adjust gap as needed */
+/* Add this to your global CSS or a CSS module */
+.layout > div:hover .absolute {
+  display: block;
 }
 
-.grid > div {
-  min-width: 100px; /* Ensure a minimum width for each grid item */
-  min-height: 50px; /* Ensure a minimum height for each grid item */
-  grid-column-end: span 2; /* Default span across 2 columns */
+.layout > div {
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.layout > div:focus-within .absolute {
+  display: block;
 }

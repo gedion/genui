@@ -6,7 +6,7 @@ import { mapPosition } from './componentPositionMapping';
 
 import { ChatScrollAnchor } from '@/lib/hooks/chat-scroll-anchor';
 import ContextMenu from '@/components/ui/contextMenu';
-
+import GridLayout from '@/components/ui/GridLayout'
 // Force the page to be dynamic and allow streaming responses up to 30 seconds
 export const dynamic = 'force-dynamic';
 export const maxDuration = 30;
@@ -33,6 +33,13 @@ export default function Page() {
   return (
     <div>
       <ContextMenu message={components} setMessages={setComponents}>
+        <GridLayout />
+      </ContextMenu>
+    </div>
+  );
+}
+
+/*
         <div className="grid grid-cols-12 gap-2">
           {keys.map((key, index) => {
             const DynamicComponent = componentsMapping[key];
@@ -48,7 +55,4 @@ export default function Page() {
           })}
           <ChatScrollAnchor trackVisibility={true} />
         </div>
-      </ContextMenu>
-    </div>
-  );
-}
+*/
